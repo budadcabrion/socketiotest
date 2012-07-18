@@ -1,0 +1,155 @@
+<html>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script src="/js/shortcuts.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+
+	  var socket = io.connect('http://localhost');
+
+	  socket.on('error', function(data) {
+	  	console.log(data);
+	  	log('error: ' + data.message, 'error');
+	  });
+
+	  socket.on('joined', function(playerId, name) {
+	  	log('player #' + playerId + ' has joined as ' + name, 'message');
+	  });
+
+	  socket.on('gamestarted', function() {
+	  	log('game has started!', 'confirmation');
+	  });
+
+	  socket.on('fullupdate', function(width, height, board) {
+	  	console.log('receiving fullupdate');
+
+	  	var i = 0;
+	  	var $board = $('#board');
+	  	$board.empty();
+
+	  	for (var y = 0; y < height; y++) {
+	  		var $row = $(DIV);
+	  		$row.addClass('row');
+
+	  		for (var x = 0; x < width; x++, i++) {
+	  			var $square = $(DIV);
+	  			$square.addClass('player' + board[i]);
+	  			$square.id = '' + x + '-' + y;
+	  			$row.append($square);
+	  		}
+
+	  		$board.append($row);
+	  	}
+
+	  });
+
+	  socket.on('updatesquare', function(playerId, x, y) {
+	  	console.log('receiving updatesquare');
+	  	var $square = $('#board #' + x + '-' + y);
+	  	$square.removeClass();
+	  	$square.addClass('player' + playerId);
+	  });
+
+	  function join() {
+	  	socket.emit('join', $('#name').val(), 
+	  		function(playerId, name) {
+	  			log('welcome ' + name + ' you are player #' + playerId, 'confirmation');
+	  		}
+	  	);
+	  }
+
+	  function startgame() {
+	  	socket.emit('startgame');
+	  }
+
+	  function taketurn(x, y) {
+	  	socket.emit('taketurn', x, y);
+	  	console.log('taketurn ', x, y)
+	  }
+
+	  function requestupdate() {
+	  	socket.emit('requestupdate');
+	  }
+
+	  function log(str, css) {
+	  	var d = $(DIV);
+	  	d.addClass(css);
+	  	d.html(str);
+	  	$('#log').append(d);
+	  }
+	</script>
+
+	<style>
+		body {height: 100%;}
+		
+		#buttons { position:absolute; }
+
+		#log { position:absolute; overflow-y: scroll;}
+		#log>div {font-size: 12px; font-family: courier new, fixed-width; font-weight: bold;}
+
+		#log>.confirmation {color: Green;}
+		#log>.error {color: Red;}
+
+		#board {position: absolute; }
+		#board>.row {clear:both;}
+		#board>.row>div {border-width: 5px; border-style: solid; height: 40px; width: 40px; float:left;}
+		#board .player-1 { background-color: #aaa; border-color: #ccc; }
+		#board .player0 { background-color: #f00; border-color: #f88; }
+		#board .player1 { background-color: #00f; border-color: #88f; }
+		#board .player2 { background-color: #0f0; border-color: #8f8; }
+		#board .player3 { background-color: #ff0; border-color: #ff8; }
+
+
+	</style>
+
+	<script language="javascript">
+    function resize() {
+        var h = parseInt($(window).height());
+        var w = parseInt($(window).width());
+
+        $('#buttons').width(300);
+        $('#buttons').height(100);
+        $('#buttons').y = 0;
+        $('#buttonx').x = 0;
+
+        $('#log').width(300);
+        $('#log').height(h-100);
+        $('#log').y = 100;
+        $('#log').x = 0;
+
+        $('#board').width(w-300);
+        $('#board').height(h);
+        $('#board').y = 00;
+        $('#board').x = 300;
+    }
+    
+    $(document).ready(resize);
+    $(window).resize(resize);
+
+    $(document).on('click', '#board>.row>div', null, function(event) {
+    	var a = $(this).id.split('-');
+    	taketurn(a[0], a[1]);
+    });
+
+	</script>
+
+	<body>
+
+		<div id="buttons">
+			<input type="text" id="name" value="your name"/>
+			<button onclick="join();">join</button>
+
+			<button onclick="startgame();">start game</button>
+
+			<button onclick="requestupdate();">request update</button>
+		</div>
+
+		<div id="log">
+		</div>
+
+		<div id="board">
+		</div>
+
+
+	</body>
+</html>
+
